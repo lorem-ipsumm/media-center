@@ -13,6 +13,7 @@ import {
   SkipForward,
   Captions,
   CaptionsOff,
+  Gauge,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -33,6 +34,7 @@ import {
   useSetVolume,
   useSetFullscreen,
   useSetSubtitle,
+  useSetSpeed,
   type PlayerStatus,
   type SubtitleTrack,
 } from "@/lib/hooks/api/use-player";
@@ -212,6 +214,53 @@ function IconButton({
 }
 
 // ---------------------------------------------------------------------------
+// Playback speed selector
+// ---------------------------------------------------------------------------
+const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] as const;
+
+function SpeedSelector({
+  speed,
+  onSelect,
+}: {
+  speed: number;
+  onSelect: (speed: number) => void;
+}) {
+  const isNormal = speed === 1;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label="Playback speed"
+        className={cn(
+          "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors",
+          "border border-border bg-muted hover:bg-accent hover:text-accent-foreground",
+          "focus:outline-none focus:ring-2 focus:ring-ring",
+          isNormal ? "text-muted-foreground" : "text-primary border-primary/40",
+        )}
+      >
+        <Gauge className="size-3.5 shrink-0" />
+        <span className="tabular-nums">{speed === 1 ? "1×" : `${speed}×`}</span>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent side="bottom" align="end" className="min-w-[120px]">
+        <DropdownMenuLabel>Playback Speed</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuRadioGroup
+          value={speed.toString()}
+          onValueChange={(val) => onSelect(Number(val))}
+        >
+          {SPEEDS.map((s) => (
+            <DropdownMenuRadioItem key={s} value={s.toString()}>
+              {s === 1 ? "1× Normal" : `${s}×`}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Subtitle selector
 // ---------------------------------------------------------------------------
 function SubtitleSelector({
@@ -284,11 +333,13 @@ export function PlayerBar({ status }: PlayerBarProps) {
   const setVolume = useSetVolume();
   const setFullscreen = useSetFullscreen();
   const setSubtitle = useSetSubtitle();
+  const setSpeed = useSetSpeed();
 
   const isPaused = status.paused ?? false;
   const volume = status.volume ?? 100;
   const isFullscreen = status.fullscreen ?? false;
   const subtitles = status.subtitles ?? [];
+  const speed = status.speed ?? 1;
 
   const title = status.title ?? "Unknown";
   const nameWithoutExt = title.includes(".")
@@ -298,7 +349,7 @@ export function PlayerBar({ status }: PlayerBarProps) {
   return (
     <div className="shrink-0 border-t border-border bg-card text-card-foreground flex flex-col">
       {/* ── Row 1: Playback controls ── */}
-      <div className="flex items-center justify-center gap-2 px-4 pt-3 pb-1">
+      <div className="flex items-center gap-2 pl-1 pr-4 pt-3 pb-1">
         <IconButton
           onClick={() => skip.mutate(-10)}
           disabled={skip.isPending}
@@ -337,6 +388,10 @@ export function PlayerBar({ status }: PlayerBarProps) {
         >
           <SkipForward className="size-4" />
         </IconButton>
+
+        <div className="ml-auto">
+          <SpeedSelector speed={speed} onSelect={(s) => setSpeed.mutate(s)} />
+        </div>
       </div>
 
       {/* ── Row 2: Seek scrubber ── */}

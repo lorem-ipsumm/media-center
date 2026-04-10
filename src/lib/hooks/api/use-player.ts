@@ -16,6 +16,7 @@ export interface PlayerStatus {
   volume?: number | null;
   fullscreen?: boolean;
   subtitles?: SubtitleTrack[];
+  speed?: number | null;
 }
 
 async function fetchPlayerStatus(): Promise<PlayerStatus> {
@@ -181,6 +182,23 @@ export function useSetVolume() {
       await queryClient.cancelQueries({ queryKey: PLAYER_STATUS_KEY });
       queryClient.setQueryData<PlayerStatus>(PLAYER_STATUS_KEY, (old) =>
         old ? { ...old, volume } : old,
+      );
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: PLAYER_STATUS_KEY });
+    },
+  });
+}
+
+export function useSetSpeed() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (speed: number) => postPlayerAction("speed", { speed }),
+    onMutate: async (speed) => {
+      await queryClient.cancelQueries({ queryKey: PLAYER_STATUS_KEY });
+      queryClient.setQueryData<PlayerStatus>(PLAYER_STATUS_KEY, (old) =>
+        old ? { ...old, speed } : old,
       );
     },
     onSettled: () => {
