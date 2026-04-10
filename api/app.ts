@@ -276,7 +276,7 @@ app.get("/player/status", async (c) => {
   }
 
   try {
-    const [paused, title, position, duration, volume, fullscreen] =
+    const [paused, title, position, duration, volume, fullscreen, trackList] =
       await Promise.all([
         getMpvProperty("pause"),
         getMpvProperty("media-title"),
@@ -284,7 +284,25 @@ app.get("/player/status", async (c) => {
         getMpvProperty("duration"),
         getMpvProperty("volume"),
         getMpvProperty("fullscreen"),
+        getMpvProperty("track-list"),
       ]);
+
+    type RawTrack = {
+      id: number;
+      type: string;
+      title?: string;
+      lang?: string;
+      selected: boolean;
+    };
+
+    const subtitles = ((trackList as RawTrack[]) ?? [])
+      .filter((t) => t.type === "sub")
+      .map((t) => ({
+        id: t.id,
+        title: t.title ?? null,
+        lang: t.lang ?? null,
+        selected: t.selected,
+      }));
 
     return c.json({
       playing: true,
@@ -294,6 +312,7 @@ app.get("/player/status", async (c) => {
       duration: duration as number | null,
       volume: volume as number | null,
       fullscreen: fullscreen as boolean,
+      subtitles,
     });
   } catch {
     // Socket existed but mpv died between the access check and the command
@@ -307,6 +326,22 @@ app.post("/player/seek", async (c) => {
   const { position } = await c.req.json<{ position: number }>();
   // seek to absolute position in seconds
   await sendMpvCommand(["seek", position, "absolute"]);
+  return c.json({ ok: true });
+});
+
+app.post("/player/skip", async (c) => {
+  const early = await requireSocket(c);
+  if (early) return early;
+  const { seconds } = await c.req.json<{ seconds: number }>();
+  await sendMpvCommand(["seek", seconds, "relative"]);
+  return c.json({ ok: true });
+});
+
+app.post("/player/subtitle", async (c) => {
+  const early = await requireSocket(c);
+  if (early) return early;
+  const { id } = await c.req.json<{ id: number | "no" }>();
+  await sendMpvCommand(["set_property", "sid", id]);
   return c.json({ ok: true });
 });
 

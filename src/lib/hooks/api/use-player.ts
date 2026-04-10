@@ -1,5 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+export interface SubtitleTrack {
+  id: number;
+  title: string | null;
+  lang: string | null;
+  selected: boolean;
+}
+
 export interface PlayerStatus {
   playing: boolean;
   paused?: boolean;
@@ -8,6 +15,7 @@ export interface PlayerStatus {
   duration?: number | null;
   volume?: number | null;
   fullscreen?: boolean;
+  subtitles?: SubtitleTrack[];
 }
 
 async function fetchPlayerStatus(): Promise<PlayerStatus> {
@@ -80,6 +88,49 @@ export function useResumePlayer() {
       queryClient.setQueryData<PlayerStatus>(PLAYER_STATUS_KEY, (old) =>
         old ? { ...old, paused: false } : old,
       );
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: PLAYER_STATUS_KEY });
+    },
+  });
+}
+
+export function useSkipPlayer() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (seconds: number) => postPlayerAction("skip", { seconds }),
+    onMutate: async (seconds) => {
+      await queryClient.cancelQueries({ queryKey: PLAYER_STATUS_KEY });
+      queryClient.setQueryData<PlayerStatus>(PLAYER_STATUS_KEY, (old) =>
+        old?.position != null
+          ? { ...old, position: Math.max(0, old.position + seconds) }
+          : old,
+      );
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: PLAYER_STATUS_KEY });
+    },
+  });
+}
+
+export function useSetSubtitle() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number | "no") => postPlayerAction("subtitle", { id }),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: PLAYER_STATUS_KEY });
+      queryClient.setQueryData<PlayerStatus>(PLAYER_STATUS_KEY, (old) => {
+        if (!old?.subtitles) return old;
+        return {
+          ...old,
+          subtitles: old.subtitles.map((t) => ({
+            ...t,
+            selected: t.id === id,
+          })),
+        };
+      });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: PLAYER_STATUS_KEY });

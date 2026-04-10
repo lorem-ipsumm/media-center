@@ -1,88 +1,198 @@
-# React + TypeScript + Vite + Tailwind + Shadcn + Hono Stack
+# Media Center
 
-This is my go-to boilerplate for React projects with API routing. I've put together this stack because it gives me everything I need to build modern full-stack web apps quickly and is meant to prevent vendor lock-in.
+A local media browser and playback controller built on a React + Hono full-stack Vite setup. The app scans a configured directory on the host machine, lists video files grouped by folder, and controls a running `mpv` process via its IPC socket — all from a browser UI that works on both desktop and mobile.
 
-## What's in here
+---
 
-- **React ^18** with TypeScript for solid, type-safe components
-- **Vite** very fast and very unopinionated
-- **Tailwind CSS V4** for styling without writing much CSS
-- **Shadcn/ui** for beautiful components that actually work well
-- **Hono** for NextJS-like API routing experience
-- **Bun** my runtime and package manager of choice, but can also be replaced with npm, yarn, pnpm, etc.
+## Stack
 
-## Getting it running
+| Layer | Technology |
+|---|---|
+| Frontend | React 18, TypeScript, Tailwind CSS v4 |
+| Components | shadcn/ui (Radix UI primitives) |
+| State / data fetching | TanStack Query v5, Zustand |
+| API server | Hono (mounted inside Vite dev server) |
+| Runtime / package manager | Bun |
+| Media player | mpv (controlled via Unix IPC socket) |
 
-You'll need Bun installed first - grab it from [bun.sh](https://bun.sh/) if you don't have it.
+---
 
-```bash
-# Clone and get into the directory
-git clone <your-repo-url>
-cd vite-typescript-tailwind-shadcn
+## Environment
 
-# Install stuff
-bun i
+A `.env` file is required in the project root. It is loaded by `vite.config.ts` using `loadEnv` and merged into `process.env` so the Hono API can read it.
 
-# Fire it up
-bun run dev
+```
+MEDIA_PATH=/absolute/path/to/your/media/root
 ```
 
-Then head to `https://localhost:5173` and you should see it running. Your API routes will be available at `https://localhost:5173/api/*`.
+The `.env` file is gitignored. See `.env.example` for the required variables.
 
-## The usual commands
+---
 
-- `bun run dev` - development server with hot reload (includes API routing)
-- `bun run build` - production build
-- `bun run lint` - check your code quality
-- `bun run preview` - test the production build locally
+## Project Structure
+
+```
+media-center/
+├── api/                        # Hono API server (Node.js, runs inside Vite)
+│   ├── app.ts                  # All API routes and mpv IPC logic
+│   ├── dev.ts                  # Vite dev-server entry point (just re-exports app)
+│   └── tsconfig.json           # TypeScript config scoped to the API
+│
+├── src/                        # React frontend
+│   ├── main.tsx                # App entry — mounts QueryClientProvider + ThemeProvider
+│   ├── App.tsx                 # Root component — media browser UI, search, play dialog
+│   ├── App.css                 # Minimal root height rule
+│   ├── index.css               # Tailwind import, CSS variable theme tokens (light + dark)
+│   │
+│   ├── components/
+│   │   ├── providers/
+│   │   │   └── theme-provider.tsx      # Applies "light"/"dark" class to <html>, reads useThemeStore
+│   │   └── ui/
+│   │       ├── player-bar.tsx          # Persistent bottom player bar (see below)
+│   │       ├── button.tsx              # shadcn Button
+│   │       ├── dialog.tsx              # shadcn Dialog (used for play confirmation)
+│   │       ├── dropdown-menu.tsx       # shadcn DropdownMenu (used for subtitle selector)
+│   │       └── context-menu.tsx        # shadcn ContextMenu
+│   │
+│   └── lib/
+│       ├── utils.ts                    # cn() helper (clsx + tailwind-merge)
+│       └── hooks/
+│           ├── api/
+│           │   ├── use-directory-content.ts  # useMediaFiles, useDirectoryContent hooks + types
+│           │   └── use-player.ts             # All player hooks + types (see below)
+│           └── store/
+│               └── use-theme-store.ts        # Zustand store — persists "light" | "dark" theme
+│
+├── packages/                   # Shared code between frontend and API (aliased as @shared)
+├── public/                     # Static assets
+├── vite.config.ts              # Vite config — loads .env into process.env, mounts Hono
+├── index.html                  # HTML entry point
+├── .env                        # Local env vars (gitignored)
+├── .env.example                # Template showing required variables
+└── package.json
+```
+
+---
 
 ## API Routes
 
-This setup includes Hono for API routing that works seamlessly with Vite during development. All API routes are automatically mounted at `/api/*` and are excluded from the frontend routing.
+All routes are prefixed with `/api` and defined in `api/app.ts`.
 
-Example API endpoints:
-- `GET /api/hello` - returns a simple JSON response
-- `POST /api/echo` - echoes back the request body
+### Media browsing
 
-You can add new API routes in the `api/app.ts` file following the Hono routing conventions.
+| Method | Route | Description |
+|---|---|---|
+| `GET` | `/api/browse?path=<dir>` | Lists all entries in a directory with type and size |
+| `GET` | `/api/media?path=<dir>` | Lists video files grouped by subdirectory. Defaults to `MEDIA_PATH`. Filters by `VIDEO_EXTENSIONS` |
 
-## Adding components
+### Player control
 
-Shadcn/ui is already configured, so when you want to add components:
+All player routes communicate with mpv via a Unix IPC socket at `/tmp/mpv-media-center.sock`. The status route checks for the socket file directly, so it reconnects to a running mpv even after the API server restarts.
 
-```bash
-bunx --bun shadcn@latest add dialog
-# or whatever component you need
-```
+| Method | Route | Body | Description |
+|---|---|---|---|
+| `GET` | `/api/player/status` | — | Returns full player state. `{ playing, paused, title, position, duration, volume, fullscreen, subtitles }` |
+| `POST` | `/api/player/play` | `{ path: string }` | Kills any running mpv, spawns a new instance with the IPC socket flag |
+| `POST` | `/api/player/pause` | — | Sets `pause = true` via IPC |
+| `POST` | `/api/player/resume` | — | Sets `pause = false` via IPC |
+| `POST` | `/api/player/stop` | — | Kills mpv process or sends `quit` via IPC if process is unowned |
+| `POST` | `/api/player/seek` | `{ position: number }` | Seeks to absolute position in seconds |
+| `POST` | `/api/player/skip` | `{ seconds: number }` | Seeks relative to current position (use negative to go back) |
+| `POST` | `/api/player/volume` | `{ volume: number }` | Sets volume (0–130, matching mpv's range) |
+| `POST` | `/api/player/fullscreen` | `{ fullscreen: boolean }` | Sets fullscreen property on mpv window |
+| `POST` | `/api/player/subtitle` | `{ id: number \| "no" }` | Sets active subtitle track by ID, or `"no"` to disable |
 
-## How it's organized
+---
 
-```
-src/
-├── components/    # Your React components go here
-  ├── ui/          # UI components from Shadcn/ui (or custom UI components)
-├── lib/           # Utilities and config related files/interfaces/etc.
-├── styles/        # Global styles
-└── App.tsx        # Main app component
+## Frontend Hooks
 
-api/
-├── app.ts         # Main Hono app with all your API routes
-├── dev.ts         # Development entry point for Vite plugin
-└── tsconfig.json  # TypeScript config for API
+### `src/lib/hooks/api/use-directory-content.ts`
 
-packages/
-├── interfaces/    # Shared TypeScript interfaces between frontend and API
-└── ...            # Other shared code (utils, constants, etc.)
-```
+| Export | Description |
+|---|---|
+| `useMediaFiles(path)` | Fetches `/api/media`. Returns `MediaContent` — groups of folders with their video files |
+| `useDirectoryContent(path)` | Fetches `/api/browse`. Returns raw directory entries with type and size |
+| `MediaFile` | `{ name, path, size }` |
+| `MediaGroup` | `{ name, path, files: MediaFile[] }` |
+| `MediaContent` | `{ path, groups: MediaGroup[] }` |
+
+### `src/lib/hooks/api/use-player.ts`
+
+| Export | Description |
+|---|---|
+| `usePlayerStatus()` | Polls `/api/player/status` — every 1s while playing, every 3s while idle |
+| `usePlayFile()` | Mutation — POSTs to `/api/player/play` with a file path |
+| `usePausePlayer()` | Mutation — optimistically sets `paused: true` |
+| `useResumePlayer()` | Mutation — optimistically sets `paused: false` |
+| `useStopPlayer()` | Mutation — optimistically sets `playing: false` |
+| `useSeekPlayer()` | Mutation — optimistically updates `position` (absolute seek) |
+| `useSkipPlayer()` | Mutation — optimistically nudges `position` by ±N seconds (relative seek) |
+| `useSetVolume()` | Mutation — optimistically updates `volume` |
+| `useSetFullscreen()` | Mutation — optimistically updates `fullscreen` |
+| `useSetSubtitle()` | Mutation — optimistically updates `selected` on the subtitles array |
+| `PlayerStatus` | Full status shape returned by the status endpoint |
+| `SubtitleTrack` | `{ id, title, lang, selected }` |
+
+### `src/lib/hooks/store/use-theme-store.ts`
+
+Zustand store persisted to `localStorage` under the key `theme-storage`.
+
+| Field / method | Description |
+|---|---|
+| `theme` | `"light" \| "dark"` |
+| `setTheme(theme)` | Sets theme explicitly |
+| `toggleTheme()` | Flips between light and dark |
+
+---
+
+## Key Components
+
+### `src/App.tsx`
+
+The root component. Responsibilities:
+- Renders the header (logo, folder count, theme toggle)
+- Search input that filters groups and files client-side
+- Renders `DirectoryGroup` cards, each collapsible, containing `MediaFileRow` items
+- Clicking a file opens `PlayDialog` (confirmation before sending play request)
+- Renders `PlayerBar` at the bottom when `playerStatus.playing === true`
+
+### `src/components/ui/player-bar.tsx`
+
+The persistent playback control bar. Rendered in three rows:
+1. **Playback controls** — skip back 10s, play/pause, skip forward 10s, stop (centred)
+2. **Seek scrubber** — draggable/tappable progress bar (pointer capture for mobile drag)
+3. **Info + secondary controls** — file icon, title, timestamp / volume slider+mute / subtitle dropdown / fullscreen toggle
+
+### `src/components/providers/theme-provider.tsx`
+
+Reads `useThemeStore` and applies the `"light"` or `"dark"` class to `document.documentElement`. Also checks `prefers-color-scheme` on first load if no saved preference exists.
+
+---
+
+## Styling Conventions
+
+- **All colours use CSS variable-based Tailwind classes** — `bg-background`, `text-foreground`, `bg-muted`, `text-muted-foreground`, `bg-primary`, `text-primary-foreground`, `bg-card`, `border-border`, `bg-accent`, `text-destructive`, etc.
+- **Never use hardcoded colour classes** like `bg-zinc-900` or `text-gray-500`. This ensures light/dark theme switching works correctly throughout.
+- CSS variables for both themes are defined in `src/index.css`.
+
+---
 
 ## Path Aliases
 
-The project includes convenient path aliases:
-- `@` → `./src` (for frontend code)
-- `@shared` → `./packages` (for shared code between frontend and API)
+| Alias | Resolves to |
+|---|---|
+| `@` | `./src` |
+| `@shared` | `./packages` |
 
-Example usage:
-```typescript
-import { SomeInterface } from '@shared/interfaces/mock';
-import { Button } from '@/components/ui/button';
+---
+
+## Dev Commands
+
+```bash
+bun run dev       # Start dev server (frontend + API on the same origin)
+bun run build     # Production build
+bun run lint      # ESLint
+bun run preview   # Preview the production build
 ```
+
+The dev server runs on `http://localhost:5173`. API routes are available at `http://localhost:5173/api/*`.

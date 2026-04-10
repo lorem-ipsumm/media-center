@@ -9,16 +9,32 @@ import {
   VolumeX,
   Maximize,
   Minimize,
+  SkipBack,
+  SkipForward,
+  Captions,
+  CaptionsOff,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import {
   usePausePlayer,
   useResumePlayer,
   useStopPlayer,
   useSeekPlayer,
+  useSkipPlayer,
   useSetVolume,
   useSetFullscreen,
+  useSetSubtitle,
   type PlayerStatus,
+  type SubtitleTrack,
 } from "@/lib/hooks/api/use-player";
 
 function formatTime(seconds: number | null | undefined): string {
@@ -196,6 +212,63 @@ function IconButton({
 }
 
 // ---------------------------------------------------------------------------
+// Subtitle selector
+// ---------------------------------------------------------------------------
+function SubtitleSelector({
+  subtitles,
+  onSelect,
+}: {
+  subtitles: SubtitleTrack[];
+  onSelect: (id: number | "no") => void;
+}) {
+  const active = subtitles.find((t) => t.selected);
+
+  function label(t: SubtitleTrack): string {
+    const parts = [t.title, t.lang ? `(${t.lang})` : null].filter(Boolean);
+    return parts.length > 0 ? parts.join(" ") : `Track ${t.id}`;
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label="Subtitle track"
+        className={cn(
+          "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors",
+          "border border-border bg-muted hover:bg-accent hover:text-accent-foreground",
+          "focus:outline-none focus:ring-2 focus:ring-ring",
+          active ? "text-primary border-primary/40" : "text-muted-foreground",
+        )}
+      >
+        {active ? (
+          <Captions className="size-3.5 shrink-0" />
+        ) : (
+          <CaptionsOff className="size-3.5 shrink-0" />
+        )}
+        <span className="hidden sm:inline max-w-[90px] truncate">
+          {active ? label(active) : "Off"}
+        </span>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent side="top" align="end" className="min-w-[160px]">
+        <DropdownMenuLabel>Subtitles</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuRadioGroup
+          value={active?.id.toString() ?? "no"}
+          onValueChange={(val) => onSelect(val === "no" ? "no" : Number(val))}
+        >
+          <DropdownMenuRadioItem value="no">Off</DropdownMenuRadioItem>
+          {subtitles.map((t) => (
+            <DropdownMenuRadioItem key={t.id} value={t.id.toString()}>
+              {label(t)}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // PlayerBar
 // ---------------------------------------------------------------------------
 interface PlayerBarProps {
@@ -207,12 +280,15 @@ export function PlayerBar({ status }: PlayerBarProps) {
   const resume = useResumePlayer();
   const stop = useStopPlayer();
   const seek = useSeekPlayer();
+  const skip = useSkipPlayer();
   const setVolume = useSetVolume();
   const setFullscreen = useSetFullscreen();
+  const setSubtitle = useSetSubtitle();
 
   const isPaused = status.paused ?? false;
   const volume = status.volume ?? 100;
   const isFullscreen = status.fullscreen ?? false;
+  const subtitles = status.subtitles ?? [];
 
   const title = status.title ?? "Unknown";
   const nameWithoutExt = title.includes(".")
@@ -220,9 +296,51 @@ export function PlayerBar({ status }: PlayerBarProps) {
     : title;
 
   return (
-    <div className="shrink-0 border-t border-border bg-card text-card-foreground">
-      {/* Seek scrubber — full width, flush to the top edge */}
-      <div className="px-4 pt-2">
+    <div className="shrink-0 border-t border-border bg-card text-card-foreground flex flex-col">
+      {/* ── Row 1: Playback controls ── */}
+      <div className="flex items-center justify-center gap-2 px-4 pt-3 pb-1">
+        <IconButton
+          onClick={() => skip.mutate(-10)}
+          disabled={skip.isPending}
+          label="Skip back 10 seconds"
+          className="text-muted-foreground hover:text-foreground hover:bg-accent"
+        >
+          <SkipBack className="size-4" />
+        </IconButton>
+
+        <IconButton
+          onClick={() => (isPaused ? resume.mutate() : pause.mutate())}
+          disabled={pause.isPending || resume.isPending}
+          label={isPaused ? "Resume" : "Pause"}
+          className="bg-primary text-primary-foreground hover:bg-primary/90"
+        >
+          {isPaused ? (
+            <Play className="size-4 fill-current" />
+          ) : (
+            <Pause className="size-4 fill-current" />
+          )}
+        </IconButton>
+        <IconButton
+          onClick={() => stop.mutate()}
+          disabled={stop.isPending}
+          label="Stop"
+          className="bg-muted text-muted-foreground hover:bg-destructive hover:text-destructive-foreground"
+        >
+          <Square className="size-3.5 fill-current" />
+        </IconButton>
+
+        <IconButton
+          onClick={() => skip.mutate(10)}
+          disabled={skip.isPending}
+          label="Skip forward 10 seconds"
+          className="text-muted-foreground hover:text-foreground hover:bg-accent"
+        >
+          <SkipForward className="size-4" />
+        </IconButton>
+      </div>
+
+      {/* ── Row 2: Seek scrubber ── */}
+      <div className="px-4 pt-1 pb-1">
         <SeekBar
           position={status.position}
           duration={status.duration}
@@ -230,91 +348,45 @@ export function PlayerBar({ status }: PlayerBarProps) {
         />
       </div>
 
-      {/*
-        Two-row layout on mobile, single row on sm+
-        Mobile:
-          Row A  [icon + title/time]          [fullscreen]
-          Row B  [volume control]    [play/pause + stop]
-        sm+:
-          [icon + title/time]  [volume]  [play/pause + stop]  [fullscreen]
-      */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 px-4 pb-3 pt-1">
-        {/* ── Row A / Left: icon + title + timestamp ── */}
-        <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          <div className="flex items-center justify-center size-8 rounded-md bg-primary/10 border border-border shrink-0">
-            <FileVideo className="size-3.5 text-primary" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate leading-none">
-              {nameWithoutExt}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1 tabular-nums">
-              {formatTime(status.position)}
-              <span className="mx-1 opacity-40">/</span>
-              {formatTime(status.duration)}
-            </p>
-          </div>
-
-          {/* Fullscreen — shown inline with title on mobile (right side of row A) */}
-          <IconButton
-            onClick={() => setFullscreen.mutate(!isFullscreen)}
-            label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-            className="sm:hidden text-muted-foreground hover:text-foreground hover:bg-accent"
-          >
-            {isFullscreen ? (
-              <Minimize className="size-4" />
-            ) : (
-              <Maximize className="size-4" />
-            )}
-          </IconButton>
+      {/* ── Row 3: Title + timestamp ── */}
+      <div className="flex items-center gap-2.5 px-4 py-2">
+        <div className="flex items-center justify-center size-8 rounded-md bg-primary/10 border border-border shrink-0">
+          <FileVideo className="size-3.5 text-primary" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium truncate leading-none">
+            {nameWithoutExt}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1 tabular-nums">
+            {formatTime(status.position)}
+            <span className="mx-1 opacity-40">/</span>
+            {formatTime(status.duration)}
+          </p>
         </div>
 
-        {/* ── Row B / Right: volume + controls + fullscreen ── */}
-        <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3">
-          {/* Volume */}
-          <VolumeControl
-            volume={volume}
-            onVolume={(v) => setVolume.mutate(v)}
+        {/* Volume */}
+        <VolumeControl volume={volume} onVolume={(v) => setVolume.mutate(v)} />
+
+        {/* Subtitles — only shown when tracks are available */}
+        {subtitles.length > 0 && (
+          <SubtitleSelector
+            subtitles={subtitles}
+            onSelect={(id) => setSubtitle.mutate(id)}
           />
+        )}
 
-          {/* Play / Pause + Stop */}
-          <div className="flex items-center gap-2">
-            <IconButton
-              onClick={() => (isPaused ? resume.mutate() : pause.mutate())}
-              disabled={pause.isPending || resume.isPending}
-              label={isPaused ? "Resume" : "Pause"}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              {isPaused ? (
-                <Play className="size-4 fill-current" />
-              ) : (
-                <Pause className="size-4 fill-current" />
-              )}
-            </IconButton>
-
-            <IconButton
-              onClick={() => stop.mutate()}
-              disabled={stop.isPending}
-              label="Stop"
-              className="bg-muted text-muted-foreground hover:bg-destructive hover:text-destructive-foreground"
-            >
-              <Square className="size-3.5 fill-current" />
-            </IconButton>
-          </div>
-
-          {/* Fullscreen — hidden on mobile, shown on sm+ */}
-          <IconButton
-            onClick={() => setFullscreen.mutate(!isFullscreen)}
-            label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-            className="hidden sm:flex text-muted-foreground hover:text-foreground hover:bg-accent"
-          >
-            {isFullscreen ? (
-              <Minimize className="size-4" />
-            ) : (
-              <Maximize className="size-4" />
-            )}
-          </IconButton>
-        </div>
+        {/* Fullscreen */}
+        <IconButton
+          onClick={() => setFullscreen.mutate(!isFullscreen)}
+          label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          className="text-muted-foreground hover:text-foreground hover:bg-accent shrink-0"
+        >
+          {isFullscreen ? (
+            <Minimize className="size-4" />
+          ) : (
+            <Maximize className="size-4" />
+          )}
+        </IconButton>
       </div>
     </div>
   );
