@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" fill="#0b0d15"/>
+
+  <!-- Film strip bar - top -->
+  <rect x="0" y="0" width="512" height="72" fill="#13162a"/>
+  <!-- Film strip bar - bottom -->
+  <rect x="0" y="440" width="512" height="72" fill="#13162a"/>
+
+  <!-- Sprocket holes - top row -->
+  <rect x="20" y="14" width="32" height="44" rx="6" fill="#0b0d15"/>
+  <rect x="72" y="14" width="32" height="44" rx="6" fill="#0b0d15"/>
+  <rect x="124" y="14" width="32" height="44" rx="6" fill="#0b0d15"/>
+  <rect x="176" y="14" width="32" height="44" rx="6" fill="#0b0d15"/>
+  <rect x="228" y="14" width="32" height="44" rx="6" fill="#0b0d15"/>
+  <rect x="280" y="14" width="32" height="44" rx="6" fill="#0b0d15"/>
+  <rect x="332" y="14" width="32" height="44" rx="6" fill="#0b0d15"/>
+  <rect x="384" y="14" width="32" height="44" rx="6" fill="#0b0d15"/>
+  <rect x="436" y="14" width="32" height="44" rx="6" fill="#0b0d15"/>
+  <rect x="460" y="14" width="32" height="44" rx="6" fill="#0b0d15"/>
+
+  <!-- Sprocket holes - bottom row -->
+  <rect x="20" y="454" width="32" height="44" rx="6" fill="#0b0d15"/>
+  <rect x="72" y="454" width="32" height="44" rx="6" fill="#0b0d15"/>
+  <rect x="124" y="454" width="32" height="44" rx="6" fill="#0b0d15"/>
+  <rect x="176" y="454" width="32" height="44" rx="6" fill="#0b0d15"/>
+  <rect x="228" y="454" width="32" height="44" rx="6" fill="#0b0d15"/>
+  <rect x="280" y="454" width="32" height="44" rx="6" fill="#0b0d15"/>
+  <rect x="332" y="454" width="32" height="44" rx="6" fill="#0b0d15"/>
+  <rect x="384" y="454" width="32" height="44" rx="6" fill="#0b0d15"/>
+  <rect x="436" y="454" width="32" height="44" rx="6" fill="#0b0d15"/>
+  <rect x="460" y="454" width="32" height="44" rx="6" fill="#0b0d15"/>
+
+  <!-- Glowing circle backdrop for play button -->
+  <circle cx="256" cy="256" r="148" fill="#1a1d30"/>
+  <circle cx="256" cy="256" r="148" fill="url(#glow)" opacity="0.3"/>
+
+  <!-- Play triangle -->
+  <polygon points="214,184 214,328 358,256" fill="#8b5cf6"/>
+
+  <!-- Subtle inner highlight on play button -->
+  <polygon points="214,184 214,230 280,220" fill="#a78bfa" opacity="0.4"/>
+
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#8b5cf6" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+</svg>

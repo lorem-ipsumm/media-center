@@ -20,6 +20,35 @@ export default defineConfig(({ mode }) => {
         devOptions: {
           enabled: true,
         },
+        includeAssets: ["icons/apple-touch-icon.png"],
+        manifest: {
+          name: "Media Center",
+          short_name: "Media",
+          description: "Local media center controller",
+          start_url: "/",
+          scope: "/",
+          display: "standalone",
+          background_color: "#0b0d15",
+          theme_color: "#0b0d15",
+          icons: [
+            {
+              src: "/icons/icon-192x192.png",
+              sizes: "192x192",
+              type: "image/png",
+            },
+            {
+              src: "/icons/icon-512x512.png",
+              sizes: "512x512",
+              type: "image/png",
+            },
+            {
+              src: "/icons/icon-512x512.png",
+              sizes: "512x512",
+              type: "image/png",
+              purpose: "maskable",
+            },
+          ],
+        },
       }),
       devServer({
         entry: "api/dev.ts",
