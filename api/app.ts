@@ -19,8 +19,11 @@ import { Hono, type Context } from "hono";
 import { cors } from "hono/cors";
 import { readdir, stat, access } from "fs/promises";
 import { join, resolve, extname } from "path";
-import { spawn, type ChildProcess } from "child_process";
+import { spawn, exec, type ChildProcess } from "child_process";
 import * as net from "net";
+import { promisify } from "util";
+
+const execAsync = promisify(exec);
 
 const SOCKET_PATH = "/tmp/mpv-media-center.sock";
 
@@ -524,4 +527,23 @@ app.post("/player/fullscreen", async (c) => {
   log("FULLSCREEN", `setting fullscreen to ${fullscreen}`);
   await sendMpvCommand(["set_property", "fullscreen", fullscreen]);
   return c.json({ ok: true });
+});
+
+// ---------------------------------------------------------------------------
+// System routes
+// ---------------------------------------------------------------------------
+
+app.post("/system/set-display-mode", async (c) => {
+  const cmd = "xrandr --output HDMI-A-0 --mode 1920x1080";
+  log("DISPLAY", `running: ${cmd}`);
+  try {
+    const { stdout, stderr } = await execAsync(cmd);
+    if (stdout) log("DISPLAY", `stdout: ${stdout.trim()}`);
+    if (stderr) log("DISPLAY", `stderr: ${stderr.trim()}`);
+    return c.json({ ok: true });
+  } catch (err) {
+    logError("DISPLAY", "xrandr command failed", err);
+    const message = err instanceof Error ? err.message : String(err);
+    return c.json({ error: message }, 500);
+  }
 });

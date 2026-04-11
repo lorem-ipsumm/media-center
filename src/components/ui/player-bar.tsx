@@ -14,6 +14,8 @@ import {
   Captions,
   CaptionsOff,
   Gauge,
+  Monitor,
+  SlidersHorizontal,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -24,6 +26,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
   usePausePlayer,
@@ -38,6 +47,7 @@ import {
   type PlayerStatus,
   type SubtitleTrack,
 } from "@/lib/hooks/api/use-player";
+import { useSetDisplayMode } from "@/lib/hooks/api/use-system";
 
 function formatTime(seconds: number | null | undefined): string {
   if (seconds == null || isNaN(seconds)) return "--:--";
@@ -334,6 +344,7 @@ export function PlayerBar({ status }: PlayerBarProps) {
   const setFullscreen = useSetFullscreen();
   const setSubtitle = useSetSubtitle();
   const setSpeed = useSetSpeed();
+  const setDisplayMode = useSetDisplayMode();
 
   const isPaused = status.paused ?? false;
   const volume = status.volume ?? 100;
@@ -389,8 +400,45 @@ export function PlayerBar({ status }: PlayerBarProps) {
           <SkipForward className="size-4" />
         </IconButton>
 
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
           <SpeedSelector speed={speed} onSelect={(s) => setSpeed.mutate(s)} />
+          <Dialog>
+            <DialogTrigger asChild>
+              <button
+                aria-label="More controls"
+                className={cn(
+                  "flex items-center justify-center size-10 rounded-lg transition-colors",
+                  "text-muted-foreground hover:text-foreground hover:bg-accent",
+                )}
+              >
+                <SlidersHorizontal className="size-4" />
+              </button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>More Controls</DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col gap-5 pt-2">
+                {/* Display mode */}
+                <div className="flex items-center justify-between gap-4">
+                  <span className="text-sm font-medium">Display</span>
+                  <button
+                    onClick={() => setDisplayMode.mutate()}
+                    disabled={setDisplayMode.isPending}
+                    aria-label="Set display mode to 1920x1080"
+                    className={cn(
+                      "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
+                      "border border-border bg-muted hover:bg-accent hover:text-accent-foreground",
+                      "disabled:opacity-50 disabled:cursor-not-allowed",
+                    )}
+                  >
+                    <Monitor className="size-4 shrink-0" />
+                    <span>Set 1920×1080</span>
+                  </button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
