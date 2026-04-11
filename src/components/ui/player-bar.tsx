@@ -418,13 +418,12 @@ export function PlayerBar({ status }: PlayerBarProps) {
               <DialogHeader>
                 <DialogTitle>More Controls</DialogTitle>
               </DialogHeader>
-              <div className="flex flex-col gap-5 pt-2">
+              <div className="flex flex-col gap-5 pt-2 text-foreground">
                 {/* Display mode */}
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-sm font-medium">Display</span>
                   <button
                     onClick={() => setDisplayMode.mutate()}
-                    disabled={setDisplayMode.isPending}
                     aria-label="Set display mode to 1920x1080"
                     className={cn(
                       "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
