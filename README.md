@@ -91,7 +91,7 @@ All player routes communicate with mpv via a Unix IPC socket at `/tmp/mpv-media-
 
 | Method | Route | Body | Description |
 |---|---|---|---|
-| `GET` | `/api/player/status` | — | Returns full player state. `{ playing, paused, title, position, duration, volume, fullscreen, subtitles }` |
+| `GET` | `/api/player/status` | — | Returns full player state. `{ playing, paused, title, position, duration, volume, fullscreen, subtitles, subtitleOffset }` |
 | `POST` | `/api/player/play` | `{ path: string }` | Kills any running mpv, spawns a new instance with the IPC socket flag |
 | `POST` | `/api/player/pause` | — | Sets `pause = true` via IPC |
 | `POST` | `/api/player/resume` | — | Sets `pause = false` via IPC |
@@ -101,6 +101,7 @@ All player routes communicate with mpv via a Unix IPC socket at `/tmp/mpv-media-
 | `POST` | `/api/player/volume` | `{ volume: number }` | Sets volume (0–130, matching mpv's range) |
 | `POST` | `/api/player/fullscreen` | `{ fullscreen: boolean }` | Sets fullscreen property on mpv window |
 | `POST` | `/api/player/subtitle` | `{ id: number \| "no" }` | Sets active subtitle track by ID, or `"no"` to disable |
+| `POST` | `/api/player/subtitle-offset` | `{ offset: number }` | Sets the subtitle delay in seconds (`sub-delay` in mpv). Negative values make subtitles appear earlier, positive values later |
 
 ---
 
@@ -130,6 +131,7 @@ All player routes communicate with mpv via a Unix IPC socket at `/tmp/mpv-media-
 | `useSetVolume()` | Mutation — optimistically updates `volume` |
 | `useSetFullscreen()` | Mutation — optimistically updates `fullscreen` |
 | `useSetSubtitle()` | Mutation — optimistically updates `selected` on the subtitles array |
+| `useAdjustSubtitleOffset()` | Mutation — optimistically updates `subtitleOffset`; POSTs absolute offset in seconds to `/api/player/subtitle-offset` |
 | `PlayerStatus` | Full status shape returned by the status endpoint |
 | `SubtitleTrack` | `{ id, title, lang, selected }` |
 
@@ -162,6 +164,10 @@ The persistent playback control bar. Rendered in three rows:
 1. **Playback controls** — skip back 10s, play/pause, skip forward 10s, stop (centred)
 2. **Seek scrubber** — draggable/tappable progress bar (pointer capture for mobile drag)
 3. **Info + secondary controls** — file icon, title, timestamp / volume slider+mute / subtitle dropdown / fullscreen toggle
+
+The **More Controls** dialog (opened via the sliders icon in the playback row) contains additional controls:
+- **Subtitle Offset** — `−` / `+` buttons adjust the subtitle delay by 0.1 s per tap; a **Reset** button returns it to 0. The current offset is displayed and highlighted in primary colour when non-zero.
+- **Display** — sets the connected display to 1920×1080 via `xrandr`.
 
 ### `src/components/providers/theme-provider.tsx`
 

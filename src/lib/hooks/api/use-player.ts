@@ -17,6 +17,7 @@ export interface PlayerStatus {
   fullscreen?: boolean;
   subtitles?: SubtitleTrack[];
   speed?: number | null;
+  subtitleOffset?: number | null;
 }
 
 async function fetchPlayerStatus(): Promise<PlayerStatus> {
@@ -199,6 +200,24 @@ export function useSetSpeed() {
       await queryClient.cancelQueries({ queryKey: PLAYER_STATUS_KEY });
       queryClient.setQueryData<PlayerStatus>(PLAYER_STATUS_KEY, (old) =>
         old ? { ...old, speed } : old,
+      );
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: PLAYER_STATUS_KEY });
+    },
+  });
+}
+
+export function useAdjustSubtitleOffset() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (offset: number) =>
+      postPlayerAction("subtitle-offset", { offset }),
+    onMutate: async (offset) => {
+      await queryClient.cancelQueries({ queryKey: PLAYER_STATUS_KEY });
+      queryClient.setQueryData<PlayerStatus>(PLAYER_STATUS_KEY, (old) =>
+        old ? { ...old, subtitleOffset: offset } : old,
       );
     },
     onSettled: () => {

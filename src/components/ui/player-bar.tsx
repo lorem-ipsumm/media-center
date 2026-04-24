@@ -44,6 +44,7 @@ import {
   useSetFullscreen,
   useSetSubtitle,
   useSetSpeed,
+  useAdjustSubtitleOffset,
   type PlayerStatus,
   type SubtitleTrack,
 } from "@/lib/hooks/api/use-player";
@@ -344,6 +345,7 @@ export function PlayerBar({ status }: PlayerBarProps) {
   const setFullscreen = useSetFullscreen();
   const setSubtitle = useSetSubtitle();
   const setSpeed = useSetSpeed();
+  const adjustSubtitleOffset = useAdjustSubtitleOffset();
   const setDisplayMode = useSetDisplayMode();
 
   const isPaused = status.paused ?? false;
@@ -351,6 +353,7 @@ export function PlayerBar({ status }: PlayerBarProps) {
   const isFullscreen = status.fullscreen ?? false;
   const subtitles = status.subtitles ?? [];
   const speed = status.speed ?? 1;
+  const subtitleOffset = status.subtitleOffset ?? 0;
 
   const title = status.title ?? "Unknown";
   const nameWithoutExt = title.includes(".")
@@ -419,6 +422,73 @@ export function PlayerBar({ status }: PlayerBarProps) {
                 <DialogTitle>More Controls</DialogTitle>
               </DialogHeader>
               <div className="flex flex-col gap-5 pt-2 text-foreground">
+                {/* Subtitle offset */}
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-sm font-medium">Subtitle Offset</span>
+                    <span
+                      className={cn(
+                        "text-xs tabular-nums",
+                        subtitleOffset === 0
+                          ? "text-muted-foreground"
+                          : "text-primary",
+                      )}
+                    >
+                      {subtitleOffset === 0
+                        ? "0.0 s"
+                        : `${subtitleOffset > 0 ? "+" : ""}${subtitleOffset.toFixed(1)} s`}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() =>
+                        adjustSubtitleOffset.mutate(
+                          Math.round((subtitleOffset - 0.1) * 10) / 10,
+                        )
+                      }
+                      disabled={adjustSubtitleOffset.isPending}
+                      aria-label="Subtitle offset -0.1 s"
+                      className={cn(
+                        "flex items-center justify-center size-8 rounded-lg text-sm font-medium transition-colors",
+                        "border border-border bg-muted hover:bg-accent hover:text-accent-foreground",
+                        "disabled:opacity-50 disabled:cursor-not-allowed",
+                      )}
+                    >
+                      −
+                    </button>
+                    <button
+                      onClick={() => adjustSubtitleOffset.mutate(0)}
+                      disabled={
+                        adjustSubtitleOffset.isPending || subtitleOffset === 0
+                      }
+                      aria-label="Reset subtitle offset"
+                      className={cn(
+                        "flex items-center justify-center h-8 px-2.5 rounded-lg text-xs font-medium transition-colors",
+                        "border border-border bg-muted hover:bg-accent hover:text-accent-foreground",
+                        "disabled:opacity-50 disabled:cursor-not-allowed",
+                      )}
+                    >
+                      Reset
+                    </button>
+                    <button
+                      onClick={() =>
+                        adjustSubtitleOffset.mutate(
+                          Math.round((subtitleOffset + 0.1) * 10) / 10,
+                        )
+                      }
+                      disabled={adjustSubtitleOffset.isPending}
+                      aria-label="Subtitle offset +0.1 s"
+                      className={cn(
+                        "flex items-center justify-center size-8 rounded-lg text-sm font-medium transition-colors",
+                        "border border-border bg-muted hover:bg-accent hover:text-accent-foreground",
+                        "disabled:opacity-50 disabled:cursor-not-allowed",
+                      )}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
                 {/* Display mode */}
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-sm font-medium">Display</span>

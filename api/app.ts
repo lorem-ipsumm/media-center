@@ -382,6 +382,7 @@ app.get("/player/status", async (c) => {
       fullscreen,
       trackList,
       speed,
+      subtitleOffset,
     ] = await Promise.all([
       getMpvProperty("pause"),
       getMpvProperty("media-title"),
@@ -391,6 +392,7 @@ app.get("/player/status", async (c) => {
       getMpvProperty("fullscreen"),
       getMpvProperty("track-list"),
       getMpvProperty("speed"),
+      getMpvProperty("sub-delay"),
     ]);
 
     type RawTrack = {
@@ -420,6 +422,7 @@ app.get("/player/status", async (c) => {
       fullscreen: fullscreen as boolean,
       subtitles,
       speed: speed as number | null,
+      subtitleOffset: subtitleOffset as number | null,
     });
   } catch (err) {
     // Socket existed but mpv died between the access check and the command
@@ -532,6 +535,15 @@ app.post("/player/fullscreen", async (c) => {
 // ---------------------------------------------------------------------------
 // System routes
 // ---------------------------------------------------------------------------
+
+app.post("/player/subtitle-offset", async (c) => {
+  const early = await requireSocket(c);
+  if (early) return early;
+  const { offset } = await c.req.json<{ offset: number }>();
+  log("SUBTITLE-OFFSET", `setting sub-delay to ${offset}s`);
+  await sendMpvCommand(["set_property", "sub-delay", offset]);
+  return c.json({ ok: true });
+});
 
 app.post("/system/set-display-mode", async (c) => {
   const cmd = "xrandr --output HDMI-A-0 --mode 1920x1080";
