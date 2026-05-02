@@ -260,14 +260,23 @@ export default function App() {
     const q = query.trim().toLowerCase();
     if (!q) return data.groups;
 
+    // Normalize periods to spaces so "the movie" matches "the.movie"
+    const normalize = (s: string) => s.toLowerCase().replace(/\./g, " ");
+    const qNorm = normalize(q);
+
     return data.groups
       .map((group) => ({
         ...group,
-        files: group.files.filter(
-          (f) =>
-            f.name.toLowerCase().includes(q) ||
-            group.name.toLowerCase().includes(q),
-        ),
+        files: group.files.filter((f) => {
+          const nameLC = f.name.toLowerCase();
+          const groupLC = group.name.toLowerCase();
+          return (
+            nameLC.includes(q) ||
+            normalize(f.name).includes(qNorm) ||
+            groupLC.includes(q) ||
+            normalize(group.name).includes(qNorm)
+          );
+        }),
       }))
       .filter((group) => group.files.length > 0);
   }, [data, query]);
