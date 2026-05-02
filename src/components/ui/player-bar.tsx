@@ -16,6 +16,7 @@ import {
   Gauge,
   Monitor,
   SlidersHorizontal,
+  PowerOff,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -48,7 +49,7 @@ import {
   type PlayerStatus,
   type SubtitleTrack,
 } from "@/lib/hooks/api/use-player";
-import { useSetDisplayMode } from "@/lib/hooks/api/use-system";
+import { useSetDisplayMode, useKillAllMpv } from "@/lib/hooks/api/use-system";
 
 function formatTime(seconds: number | null | undefined): string {
   if (seconds == null || isNaN(seconds)) return "--:--";
@@ -347,6 +348,7 @@ export function PlayerBar({ status }: PlayerBarProps) {
   const setSpeed = useSetSpeed();
   const adjustSubtitleOffset = useAdjustSubtitleOffset();
   const setDisplayMode = useSetDisplayMode();
+  const killAllMpv = useKillAllMpv();
 
   const isPaused = status.paused ?? false;
   const volume = status.volume ?? 100;
@@ -401,6 +403,15 @@ export function PlayerBar({ status }: PlayerBarProps) {
           className="text-muted-foreground hover:text-foreground hover:bg-accent"
         >
           <SkipForward className="size-4" />
+        </IconButton>
+
+        <IconButton
+          onClick={() => killAllMpv.mutate()}
+          disabled={killAllMpv.isPending}
+          label="Kill all mpv instances"
+          className="text-muted-foreground hover:bg-destructive hover:text-destructive-foreground"
+        >
+          <PowerOff className="size-4" />
         </IconButton>
 
         <div className="ml-auto flex items-center gap-2">

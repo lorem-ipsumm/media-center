@@ -16,3 +16,9 @@ export function useSetDisplayMode() {
     mutationFn: () => postSystemAction("set-display-mode"),
   });
 }
+
+export function useKillAllMpv() {
+  return useMutation({
+    mutationFn: () => postSystemAction("kill-mpv"),
+  });
+}

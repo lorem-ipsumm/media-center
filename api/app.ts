@@ -545,6 +545,25 @@ app.post("/player/subtitle-offset", async (c) => {
   return c.json({ ok: true });
 });
 
+app.post("/system/kill-mpv", async (c) => {
+  log("KILL-MPV", "killing all mpv instances");
+  try {
+    await execAsync("pkill -x mpv");
+    mpvProcess = null;
+    log("KILL-MPV", "all mpv instances killed");
+  } catch (err) {
+    // pkill exits with code 1 when no processes matched — that's fine
+    const code = (err as NodeJS.ErrnoException & { code?: number }).code;
+    if (code !== 1) {
+      logError("KILL-MPV", "pkill failed", err);
+      const message = err instanceof Error ? err.message : String(err);
+      return c.json({ error: message }, 500);
+    }
+    log("KILL-MPV", "no mpv processes found (already stopped)");
+  }
+  return c.json({ ok: true });
+});
+
 app.post("/system/set-display-mode", async (c) => {
   const cmd = "xrandr --output HDMI-A-0 --mode 1920x1080";
   log("DISPLAY", `running: ${cmd}`);
