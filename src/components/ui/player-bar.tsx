@@ -16,7 +16,6 @@ import {
   Gauge,
   Monitor,
   SlidersHorizontal,
-  PowerOff,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -49,7 +48,7 @@ import {
   type PlayerStatus,
   type SubtitleTrack,
 } from "@/lib/hooks/api/use-player";
-import { useSetDisplayMode, useKillAllMpv } from "@/lib/hooks/api/use-system";
+import { useSetDisplayMode } from "@/lib/hooks/api/use-system";
 
 function formatTime(seconds: number | null | undefined): string {
   if (seconds == null || isNaN(seconds)) return "--:--";
@@ -348,7 +347,6 @@ export function PlayerBar({ status }: PlayerBarProps) {
   const setSpeed = useSetSpeed();
   const adjustSubtitleOffset = useAdjustSubtitleOffset();
   const setDisplayMode = useSetDisplayMode();
-  const killAllMpv = useKillAllMpv();
 
   const isPaused = status.paused ?? false;
   const volume = status.volume ?? 100;
@@ -403,15 +401,6 @@ export function PlayerBar({ status }: PlayerBarProps) {
           className="text-muted-foreground hover:text-foreground hover:bg-accent"
         >
           <SkipForward className="size-4" />
-        </IconButton>
-
-        <IconButton
-          onClick={() => killAllMpv.mutate()}
-          disabled={killAllMpv.isPending}
-          label="Kill all mpv instances"
-          className="text-muted-foreground hover:bg-destructive hover:text-destructive-foreground"
-        >
-          <PowerOff className="size-4" />
         </IconButton>
 
         <div className="ml-auto flex items-center gap-2">
@@ -531,45 +520,52 @@ export function PlayerBar({ status }: PlayerBarProps) {
         />
       </div>
 
-      {/* ── Row 3: Title + timestamp ── */}
-      <div className="flex items-center gap-2.5 px-4 py-2">
+      {/* ── Row 3: Title ── */}
+      <div className="flex items-center gap-2.5 px-4 pt-2 pb-0">
         <div className="flex items-center justify-center size-8 rounded-md bg-primary/10 border border-border shrink-0">
           <FileVideo className="size-3.5 text-primary" />
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate leading-none">
-            {nameWithoutExt}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1 tabular-nums">
-            {formatTime(status.position)}
-            <span className="mx-1 opacity-40">/</span>
-            {formatTime(status.duration)}
-          </p>
-        </div>
+        <p className="text-sm font-medium truncate leading-none">
+          {nameWithoutExt}
+        </p>
+      </div>
 
-        {/* Volume */}
-        <VolumeControl volume={volume} onVolume={(v) => setVolume.mutate(v)} />
+      {/* ── Row 4: Timestamp + controls ── */}
+      <div className="flex items-center gap-2.5 px-4 py-2">
+        <p className="text-xs text-muted-foreground tabular-nums">
+          {formatTime(status.position)}
+          <span className="mx-1 opacity-40">/</span>
+          {formatTime(status.duration)}
+        </p>
 
-        {/* Subtitles — only shown when tracks are available */}
-        {subtitles.length > 0 && (
-          <SubtitleSelector
-            subtitles={subtitles}
-            onSelect={(id) => setSubtitle.mutate(id)}
+        <div className="ml-auto flex items-center gap-2">
+          {/* Volume */}
+          <VolumeControl
+            volume={volume}
+            onVolume={(v) => setVolume.mutate(v)}
           />
-        )}
 
-        {/* Fullscreen */}
-        <IconButton
-          onClick={() => setFullscreen.mutate(!isFullscreen)}
-          label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-          className="text-muted-foreground hover:text-foreground hover:bg-accent shrink-0"
-        >
-          {isFullscreen ? (
-            <Minimize className="size-4" />
-          ) : (
-            <Maximize className="size-4" />
+          {/* Subtitles — only shown when tracks are available */}
+          {subtitles.length > 0 && (
+            <SubtitleSelector
+              subtitles={subtitles}
+              onSelect={(id) => setSubtitle.mutate(id)}
+            />
           )}
-        </IconButton>
+
+          {/* Fullscreen */}
+          <IconButton
+            onClick={() => setFullscreen.mutate(!isFullscreen)}
+            label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+            className="text-muted-foreground hover:text-foreground hover:bg-accent shrink-0"
+          >
+            {isFullscreen ? (
+              <Minimize className="size-4" />
+            ) : (
+              <Maximize className="size-4" />
+            )}
+          </IconButton>
+        </div>
       </div>
     </div>
   );

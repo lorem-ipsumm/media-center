@@ -10,10 +10,7 @@ import {
   X,
   ChevronDown,
   Play,
-  Sun,
-  Moon,
 } from "lucide-react";
-import { useThemeStore } from "@/lib/hooks/store/use-theme-store";
 import {
   useMediaFiles,
   type MediaFile,
@@ -21,6 +18,7 @@ import {
 } from "@/lib/hooks/api/use-directory-content";
 import { usePlayerStatus, usePlayFile } from "@/lib/hooks/api/use-player";
 import { PlayerBar } from "@/components/ui/player-bar";
+import { HeaderActions } from "@/components/ui/header-actions";
 import {
   Dialog,
   DialogContent,
@@ -32,24 +30,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-function ThemeToggle() {
-  const { theme, toggleTheme } = useThemeStore();
-  const isDark = theme === "dark";
-
-  return (
-    <button
-      onClick={toggleTheme}
-      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      className={cn(
-        "flex items-center justify-center size-9 rounded-lg transition-colors shrink-0",
-        "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-      )}
-    >
-      {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
-    </button>
-  );
-}
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -308,7 +288,7 @@ export default function App() {
               </p>
             )}
           </div>
-          <ThemeToggle />
+          <HeaderActions />
         </div>
 
         <div className="px-6 pb-4">
