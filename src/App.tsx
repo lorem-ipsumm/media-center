@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAppStore } from "@/lib/hooks/store/use-app-store";
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -231,7 +232,7 @@ export default function App() {
   const { data, isLoading, isError, error } = useMediaFiles(ROOT_PATH);
   const { data: playerStatus } = usePlayerStatus();
 
-  const [query, setQuery] = useState("");
+  const { searchQuery: query, setSearchQuery: setQuery } = useAppStore();
   const [selectedFile, setSelectedFile] = useState<MediaFile | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
