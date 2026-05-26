@@ -31,6 +31,19 @@ The `.env` file is gitignored. See `.env.example` for the required variables.
 
 ---
 
+## Dev Commands
+
+```bash
+bun run dev       # Start dev server (frontend + API on the same origin)
+bun run build     # Production build
+bun run lint      # ESLint
+bun run preview   # Preview the production build
+```
+
+The dev server runs on `http://localhost:5173`. API routes are available at `http://localhost:5173/api/*`.
+
+---
+
 ## Project Structure
 
 ```
@@ -191,16 +204,3 @@ Reads `useThemeStore` and applies the `"light"` or `"dark"` class to `document.d
 |---|---|
 | `@` | `./src` |
 | `@shared` | `./packages` |
-
----
-
-## Dev Commands
-
-```bash
-bun run dev       # Start dev server (frontend + API on the same origin)
-bun run build     # Production build
-bun run lint      # ESLint
-bun run preview   # Preview the production build
-```
-
-The dev server runs on `http://localhost:5173`. API routes are available at `http://localhost:5173/api/*`.
