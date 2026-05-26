@@ -1,5 +1,7 @@
 # Media Center
 
+![Screenshot](screenshots/1.jpg)
+
 A local media browser and playback controller built on a React + Hono full-stack Vite setup. The app scans a configured directory on the host machine, lists video files grouped by folder, and controls a running `mpv` process via its IPC socket — all from a browser UI that works on both desktop and mobile.
 
 ---
